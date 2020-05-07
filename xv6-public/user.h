@@ -25,6 +25,7 @@ int sleep(int);
 int uptime(void);
 int cps(void);
 int chown(char *pathname, int owner, int group);
+int getcwd(void*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);
