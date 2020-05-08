@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
         printf(2, "kurang argumen hyung\n");
         exit();
     }
-    if(argv[1][0] == '-'){
+    if(argc == 4 && argv[1][0] == '-'){
         if(strcmp(argv[1], "-m") == 0){
             if((infile = open(argv[3], O_RDONLY)) == -1){
                 printf(2, "cannot open file %s\n", argv[3]);
@@ -184,10 +184,61 @@ int main(int argc, char *argv[])
             }
         }
         else if(strcmp(argv[1], "-r") == 0){
-            //zip direktori rekursif
+            if((outfile = open(argv[2], O_WRONLY | O_CREATE)) == -1){
+                printf(2, "cannot open file %s\n", argv[2]);
+                close(outfile);
+                exit();
+            }
+            char buf[512], *p;
+            int fd;
+            struct dirent de;
+            struct stat st;
+            char *path;
+
+            strcpy(path, argv[3]);
+
+            if((fd = open(path, 0)) < 0){
+                printf(2, "zip: cannot open %s\n", path);
+                return;
+            }
+
+            if(fstat(fd, &st) < 0){
+                printf(2, "zip: cannot stat %s\n", path);
+                close(fd);
+                return;
+            }
+
+            if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+                printf(1, "zip: path too long\n");
+                break;
+            }
+
+            strcpy(buf, path);
+            p = buf+strlen(buf);
+            *p++ = '/';
+            while(read(fd, &de, sizeof(de)) == sizeof(de)){
+                if(de.inum == 0)
+                    continue;
+                memmove(p, de.name, DIRSIZ);
+                p[DIRSIZ] = 0;
+                if(stat(buf, &st) < 0){
+                    printf(1, "zip: cannot stat %s\n", buf);
+                    continue;
+                }
+                char *fname = buf + 1;
+                if((infile = open(buf, O_RDONLY)) == -1){
+                    printf(2, "cannot open file %s\n", fname);
+                    close(infile);
+                    exit();
+                }
+                Encode();
+                close(infile);
+            }
+            close(fd);
+            close(outfile);
         }
     }
-    else{
+    else if(argv[1][0] != '-'){
         int i;
         for(i=2; i<argc; i++){
             if(strcmp(argv[1], argv[i]) == 0){
@@ -208,7 +259,10 @@ int main(int argc, char *argv[])
             close(infile); 
         }
         close(outfile);
+    }
+    else{
+        printf(2, "salah argumen hyung\n");
+        exit();
     } 
-    
     exit();
 }
